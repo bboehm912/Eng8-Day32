@@ -188,6 +188,7 @@ input, textarea, select {
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
+  box-sizing: border-box;
 }
 
 .submit-btn {
@@ -222,7 +223,7 @@ input, textarea, select {
           <img src="chisholm_logo.png" alt="Chisholm Logo" onerror="this.style.display='none'" />
         </div>
         <div>
-          <h2>Basic Broadcast Technology</h2>
+          <h2>English 8: Beginnings in Research, Literature, and Composition</h2>
           <p class="subtitle">Unit 8: Week 1-8 Recap & Creative Responses — Unit 1 Recap: Literary Legacy</p>
         </div>
       </div>
@@ -257,7 +258,7 @@ input, textarea, select {
     </div>
 
     <div id="slide-stage" class="slide-stage">
-      <!-- Slides injected by script.js -->
+      <!-- Slides injected by script -->
     </div>
 
     <div class="deck-controls">
@@ -271,7 +272,7 @@ input, textarea, select {
     <h3>Lesson Resource & Reference Hub</h3>
     <p class="muted">Access official course references below.</p>
     <div id="resource-list">
-      <!-- Resources injected by script.js -->
+      <!-- Resources injected by script -->
     </div>
   </div>
 
@@ -279,7 +280,7 @@ input, textarea, select {
   <div id="form-tab" class="card tab-content">
     <h3>Student Work Checkpoint & Reflection</h3>
     <form id="checkpoint-form" onsubmit="event.preventDefault(); window.print();">
-      <!-- Dynamic form fields injected by script.js -->
+      <!-- Dynamic form fields injected by script -->
       <button type="submit" class="submit-btn">Print this page and turn into the Red Basket!</button>
     </form>
   </div>
@@ -293,16 +294,15 @@ let bellringers = [];
 
 // Stock image pool for default visual slides
 const stockImagePool = [
-  'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80', // Turtle / Nature
-  'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80', // Water / Earth-Diver
-  'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=80', // Ecology / Forest
-  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80', // Campfire / Orality
-  'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=300&q=80', // Literature / History
-  'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=300&q=80'  // Writing Workshop
+  'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80',
+  'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80',
+  'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=80',
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80',
+  'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=300&q=80',
+  'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=300&q=80'
 ];
 
-// Emoji fallback pool
-const iconPool = ['🐢', '🌊', '🌱', '🗣️', '☯️', '📝'];
+const iconPool = ['📚', '📖', '✍️', '🎭', '📝', '💡'];
 
 function renderSlides(slides) {
   const stage = document.getElementById('slide-stage');
@@ -313,9 +313,7 @@ function renderSlides(slides) {
     wrapper.className = 'slide' + (index === 0 ? ' active' : '');
     wrapper.id = `slide-${index + 1}`;
 
-    // Priority 1: slide.image OR Stock Web Image
     const imageUrl = slide.image || stockImagePool[index % stockImagePool.length];
-    // Fallback: slide.icon OR Emoji Pool
     const fallbackEmoji = slide.icon || iconPool[index % iconPool.length];
 
     const visualMediaHTML = `
@@ -347,6 +345,7 @@ function renderSlides(slides) {
     stage.appendChild(wrapper);
   });
 }
+
 function initLesson(data) {
   bellringers = data.bellringers || [];
   totalSlides = (data.slides || []).length || 1;
@@ -363,7 +362,15 @@ function initLesson(data) {
 function randomizeBellringer() {
   if (!bellringers.length) return;
   const idx = Math.floor(Math.random() * bellringers.length);
-  document.getElementById('bellringer-display').innerText = bellringers[idx];
+  const item = bellringers[idx];
+
+  if (typeof item === 'string') {
+    document.getElementById('bellringer-display').innerText = item;
+  } else if (item && typeof item === 'object') {
+    const typeStr = item.type ? `[${item.type}] ` : '';
+    const promptStr = item.prompt || item.text || '';
+    document.getElementById('bellringer-display').innerText = `${typeStr}${promptStr}`;
+  }
 }
 
 function moveSlide(dir) {
@@ -394,13 +401,16 @@ function renderResources(resources) {
       resourceList = resources.files;
     } else if (Array.isArray(resources.items)) {
       resourceList = resources.items;
-    } else if (resources.file || resources.link || resources.url) {
-      resourceList = [resources];
+    } else {
+      Object.keys(resources).forEach(cat => {
+        const catItems = resources[cat];
+        if (Array.isArray(catItems)) {
+          catItems.forEach(item => {
+            resourceList.push({ title: item, description: `Category: ${cat.toUpperCase().replace('_', ' ')}` });
+          });
+        }
+      });
     }
-  }
-
-  if (!resourceList.length && resources && typeof resources === 'object' && resources.title && (resources.file || resources.link || resources.url)) {
-    resourceList = [resources];
   }
 
   resourceList.forEach(res => {
@@ -408,17 +418,12 @@ function renderResources(resources) {
     card.className = 'resource-card';
 
     if (typeof res === 'string') {
-      const cleanText = res.trim();
-      const isFile = /\.(pdf|docx?|pptx?|xlsx?)$/i.test(cleanText);
-      if (!isFile) return;
-
-      const label = cleanText.split('/').pop();
       card.innerHTML = `
         <div>
-          <strong>${label}</strong><br/>
-          <small>Repository file</small>
+          <strong>${res}</strong><br/>
+          <small>Course Reference File</small>
         </div>
-        <a href="${cleanText}" target="_blank" rel="noopener noreferrer" class="ctrl-btn">Open Resource</a>
+        <a href="#" onclick="alert('Opening resource: ' + ${JSON.stringify(res)});" class="ctrl-btn">View Resource</a>
       `;
       container.appendChild(card);
       return;
@@ -427,14 +432,13 @@ function renderResources(resources) {
     const resourceUrl = res.file || res.link || res.url || res.href || '#';
     const resourceTitle = res.title || res.name || res.label || 'Resource Item';
     const resourceDescription = res.description || res.summary || '';
-    const fileName = resourceUrl && typeof resourceUrl === 'string' ? resourceUrl.split('/').pop() : '';
 
     card.innerHTML = `
       <div>
-        <strong>${resourceTitle || fileName || 'Resource Item'}</strong><br/>
+        <strong>${resourceTitle}</strong><br/>
         <small>${resourceDescription}</small>
       </div>
-      ${resourceUrl && resourceUrl !== '#' ? `<a href="${resourceUrl}" target="_blank" rel="noopener noreferrer" class="ctrl-btn">Open Resource</a>` : ''}
+      <a href="${resourceUrl}" ${resourceUrl !== '#' ? 'target="_blank" rel="noopener noreferrer"' : 'onclick="alert(\'Accessing reference material.\');"'} class="ctrl-btn">View Resource</a>
     `;
     container.appendChild(card);
   });
@@ -449,50 +453,68 @@ function renderForm(fields) {
   const submitBtn = form.querySelector('.submit-btn');
   form.innerHTML = '';
 
-  const fieldList = Array.isArray(fields) ? fields : [];
+  let fieldList = [];
+  if (Array.isArray(fields)) {
+    fieldList = fields;
+  } else if (fields && typeof fields === 'object' && fields !== null) {
+    fieldList = Object.values(fields);
+  }
 
   const nameGroup = document.createElement('div');
   nameGroup.className = 'form-group';
   nameGroup.innerHTML = `
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;">
-      <div><label for="student_name">Student Name</label><input type="text" id="student_name" /></div>
-      <div><label for="student_period">Period</label><input type="text" id="student_period" /></div>
-      <div><label for="student_date">Date</label><input type="date" id="student_date" /></div>
+      <div><label for="student_name">Student Name</label><input type="text" id="student_name" required /></div>
+      <div><label for="student_period">Period</label><input type="text" id="student_period" required /></div>
+      <div><label for="student_date">Date</label><input type="date" id="student_date" required /></div>
     </div>`;
   form.appendChild(nameGroup);
 
-  fieldList.forEach((field, index) => {
+  let questionCounter = 1;
+
+  fieldList.forEach((field) => {
+    if (field.name === 'student_name' || field.label === 'Student Full Name') return;
+
     const group = document.createElement('div');
     group.className = 'form-group';
 
-    const rawId = field.field_id || field.id || `q${index + 1}`;
-    const text = field.label || field.question || field.prompt || `Question ${index + 1}`;
+    const rawId = field.field_id || field.id || field.name || `q${questionCounter}`;
+    const text = field.label || field.question || field.prompt || `Question ${questionCounter}`;
     const id = `field_${rawId.toString().replace(/\s+/g, '_').toLowerCase()}`;
     const req = field.required ? 'required' : '';
     const options = field.type === 'true_false' ? ['True', 'False'] : (field.options || []);
-    const radios = options.map((o, i) => `<label style="font-weight:normal;"><input type="radio" id="${id}_${i}" name="${id}" value="${escapeHTML(o)}" ${req} style="width:auto;" /> ${escapeHTML(o)}</label>`).join('');
-    const checks = options.map((o, i) => `<label style="font-weight:normal;"><input type="checkbox" id="${id}_${i}" name="${id}" value="${escapeHTML(o)}" style="width:auto;" /> ${escapeHTML(o)}</label>`).join('');
+    
+    const radios = options.map((o, i) => `
+      <label style="font-weight:normal; margin-right: 16px; display: inline-flex; align-items: center; gap: 6px;">
+        <input type="radio" id="${id}_${i}" name="${id}" value="${escapeHTML(o)}" ${req} style="width:auto;" /> ${escapeHTML(o)}
+      </label>`).join('');
+      
+    const checks = options.map((o, i) => `
+      <label style="font-weight:normal; margin-right: 16px; display: inline-flex; align-items: center; gap: 6px;">
+        <input type="checkbox" id="${id}_${i}" name="${id}" value="${escapeHTML(o)}" style="width:auto;" /> ${escapeHTML(o)}
+      </label>`).join('');
 
-    let labelHTML = `<label for="${id}">${index + 1}. ${escapeHTML(text)}</label>`;
+    let labelHTML = `<label for="${id}">${questionCounter}. ${escapeHTML(text)}</label>`;
     let inputHTML = '';
 
     switch (field.type) {
       case 'multiple_choice':
       case 'true_false':
-        inputHTML = radios;
+        inputHTML = `<div style="margin-top:8px;">${radios}</div>`;
         break;
       case 'checkbox':
       case 'checkbox_group':
       case 'multi_select':
-        inputHTML = checks;
+        inputHTML = `<div style="margin-top:8px;">${checks}</div>`;
         break;
       case 'date':
         inputHTML = `<input type="date" id="${id}" ${req} />`;
         break;
+      case 'paragraph':
       case 'long_text':
       case 'quote_citation':
       case 'reflection':
-        inputHTML = `<textarea id="${id}" rows="6" ${req}></textarea>`;
+        inputHTML = `<textarea id="${id}" rows="5" ${req} placeholder="Write your response..."></textarea>`;
         break;
       case 'rating_scale':
         inputHTML = `<select id="${id}">${options.map(o => `<option>${escapeHTML(o)}</option>`).join('')}</select>`;
@@ -505,25 +527,27 @@ function renderForm(fields) {
         const blank = /_{3,}/;
         if (blank.test(text)) {
           const inline = `<input type="text" id="${id}" ${req} style="display:inline-block;width:220px;border:none;border-bottom:2px solid var(--text-dark);border-radius:0;padding:2px 6px;" />`;
-          labelHTML = `<label for="${id}">${index + 1}. ${escapeHTML(text).replace(/_{3,}/, inline)}</label>`;
+          labelHTML = `<label for="${id}">${questionCounter}. ${escapeHTML(text).replace(/_{3,}/, inline)}</label>`;
         } else {
-          inputHTML = `<input type="text" id="${id}" ${req} />`;
+          inputHTML = `<input type="text" id="${id}" ${req} placeholder="Type blank answer..." />`;
         }
         break;
       }
       case 'short_answer':
-        inputHTML = `<textarea id="${id}" rows="3" ${req}></textarea>`;
+        inputHTML = `<textarea id="${id}" rows="2" ${req} placeholder="Short answer response..."></textarea>`;
         break;
       default:
-        inputHTML = `<input type="text" id="${id}" ${req} />`;
+        inputHTML = `<input type="text" id="${id}" ${req} placeholder="Enter response..." />`;
     }
 
     group.innerHTML = `${labelHTML}${inputHTML}`;
     form.appendChild(group);
+    questionCounter++;
   });
 
   if (submitBtn) form.appendChild(submitBtn);
 }
+
 function switchTab(key) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -539,7 +563,234 @@ function switchTab(key) {
     document.getElementById('form-tab').classList.add('active');
   }
 }
-window.addEventListener('DOMContentLoaded', () => initLesson({"course": "English 8: Beginnings in Research, Literature, and Composition", "unit": "Unit 8: Week 1-8 Recap & Creative Responses", "day": "Day 32", "topic": "Unit 1 Recap: Literary Legacy", "primary_focus": "Reviewing character types and conflict in The Outsiders.", "core_objectives": "Synthesizing whole-unit learning objectives.", "weekly_standards": ["8.2.3.3"], "bellringers": [{"id": 1, "prompt": "Identify one internal conflict faced by Ponyboy Curtis in The Outsiders.", "type": "Short Answer", "expected_response": "Ponyboy struggles with matching his gang identity with his personal love for literature and nature."}, {"id": 2, "prompt": "Classify the main conflict between the Greasers and the Socs (Man vs. Man, Man vs. Self, Man vs. Society).", "type": "Multiple Choice", "expected_response": "Man vs. Society / Man vs. Man social class conflict."}, {"id": 3, "prompt": "List two adjectives that describe Ponyboy's narrator voice in the opening chapter.", "type": "Short Answer", "expected_response": "Observant, reflective, sensitive."}, {"id": 4, "prompt": "Write one sentence using indirect characterization to show a character feeling nervous.", "type": "Short Answer", "expected_response": "He bit his lip, tapped his shoe rapidly against the tile, and wiped his sweaty palms on his jeans."}], "slides": [{"title": "Unit 1 Recap: Revisiting Literary Legacy in The Outsiders", "standard": "8.2.3.3", "bullets": ["Revisiting key themes of identity, belonging, and socio-economic division.", "Analyzing S.E. Hinton's lasting impact on young adult narrative literature.", "Connecting character dynamics to real-world social pressures and choices."], "callout": "Literary legacy is built on relatable human struggles that transcend generations."}, {"title": "Character Archetypes: Greasers vs. Socials (Socs)", "standard": "8.2.3.3", "bullets": ["Examining structural differences between East Side Greasers and West Side Socs.", "Deconstructing societal stereotypes versus individual character reality.", "Understanding how group identity shapes individual member behaviors."], "callout": "Stereotypes collapse when you examine individual character motivations."}, {"title": "Direct vs. Indirect Characterization", "standard": "8.2.3.3", "bullets": ["Direct characterization explicitly states traits (e.g., 'Dally was tough').", "Indirect characterization reveals personality through STEAL (Speech, Thoughts, Effect, Actions, Looks).", "Applying characterization methods to craft vivid original narrative figures."], "callout": "Show, don't just tell—let actions reveal character traits naturally."}, {"title": "Internal Conflict: Self-Identity vs. Group Expectations", "standard": "8.2.3.3", "bullets": ["Ponyboy's personal struggle between intellectual interests and gang loyalty.", "Johnny's internal battle against fear and childhood trauma.", "Analyzing how internal conflicts drive character decisions under pressure."], "callout": "Internal conflicts make fictional characters feel human and relatable."}, {"title": "External Conflict: Man vs. Man & Man vs. Society", "standard": "8.2.3.3", "bullets": ["Physical confrontations and territorial rivalries driving plot progression.", "Systemic socio-economic barriers shaping community expectations.", "Evaluating how environmental pressures escalate interpersonal tensions."], "callout": "External conflicts externalize underlying societal inequalities."}, {"title": "Pivotal Plot Turning Points & Climax Review", "standard": "8.2.3.3", "bullets": ["Analyzing the park fountain incident as the narrative turning point.", "Tracing cause-and-effect sequences from initial conflict to resolution.", "Evaluating character choices made during crisis situations."], "callout": "Turning points force characters to make decisions that alter their trajectory permanently."}, {"title": "Crafting Authentic Dialogue in Narrative Writing", "standard": "8.2.3.3", "bullets": ["Using regional dialect and period-appropriate slang authentically.", "Punctuating dialogue correctly to clarify narrative speaker changes.", "Ensuring dialogue advances character relationships and plot momentum."], "callout": "Good dialogue reveals character voice while moving the story forward."}, {"title": "Setting as a Character: Divided Tulsa", "standard": "8.2.3.3", "bullets": ["Exploring how geographical setting mirrors social and economic divisions.", "Utilizing sensory detail to establish vivid physical environments.", "Analyzing how location shapes character choices and available opportunities."], "callout": "Setting is not just a backdrop; it shapes character choices and constraints."}, {"title": "Theme Synthesis: 'Stay Gold' and Social Connection", "standard": "8.2.3.3", "bullets": ["Deconstructing Robert Frost's poem 'Nothing Gold Can Stay' in context.", "Analyzing Johnny's final message regarding innocence and hope.", "Connecting thematic lessons to contemporary teenage experiences."], "callout": "'Stay gold' represents preserving idealism and empathy despite hardship."}, {"title": "Sensory Details and Pacing in Creative Narratives", "standard": "8.2.3.3", "bullets": ["Incorporating imagery appealing to sight, sound, touch, and smell.", "Controlling sentence structure to speed up or slow down plot action.", "Building narrative tension leading into key dramatic climaxes."], "callout": "Vivid sensory details transport readers directly into the scene."}, {"title": "First-Person Voice & Narrative Perspective", "standard": "8.2.3.3", "bullets": ["Evaluating Ponyboy's subjective perspective as an unreliable or biased narrator.", "Exploring how first-person point of view limits and enhances reader insights.", "Refactoring scenes from alternative character perspectives."], "callout": "Perspective filters how story truth is communicated to the reader."}, {"title": "Synthesizing Learning: Preparing Creative Unit Responses", "standard": "8.2.3.3", "bullets": ["Integrating conflict, characterization, and theme into original stories.", "Applying Minnesota ELA Standard 8.2.3.3 writing criteria to draft narratives.", "Peer reviewing creative drafts for dialogue accuracy and emotional depth."], "callout": "Synthesize unit learning by crafting your own compelling narrative voice."}], "resources": {"texts": ["The Outsiders by S.E. Hinton (Novel Excerpts)", "Robert Frost's 'Nothing Gold Can Stay'"], "graphic_organizers": ["Character Archetype Matrix", "Conflict Analysis Mapping Sheet"], "rubrics": ["MN ELA Standard 8.2.3.3 Narrative Writing Rubric"]}, "form": {"field_1": {"name": "student_name", "type": "text", "label": "Student Full Name", "required": true}, "field_2": {"name": "outsiders_theme", "type": "short_answer", "label": "Summarize the primary theme of The Outsiders in 2-3 sentences.", "required": true}, "field_3": {"name": "internal_vs_external", "type": "short_answer", "label": "Distinguish between internal and external conflict with examples from the text.", "required": true}, "field_4": {"name": "steal_acronym", "type": "multiple_choice", "label": "What does the 'E' stand for in the STEAL indirect characterization model?", "options": ["Education", "Effect on others", "Emotion", "Environment"], "required": true}, "field_5": {"name": "stay_gold_meaning", "type": "paragraph", "label": "Explain the symbolic meaning of Johnny's phrase 'Stay gold, Ponyboy.'", "required": true}, "field_6": {"name": "narrative_perspective", "type": "multiple_choice", "label": "What point of view is used in S.E. Hinton's The Outsiders?", "options": ["First-person central", "Second-person", "Third-person limited", "Third-person omniscient"], "required": true}, "field_7": {"name": "dialogue_punctuation", "type": "short_answer", "label": "Write a correctly punctuated line of dialogue spoken by Ponyboy.", "required": true}, "field_8": {"name": "greaser_soc_conflict", "type": "short_answer", "label": "What underlying socio-economic factors cause conflict between Greasers and Socs?", "required": true}, "field_9": {"name": "character_type_identify", "type": "multiple_choice", "label": "Which character serves as the protective, hardened figure within the gang?", "options": ["Ponyboy", "Dallas Winston", "Sodapop", "Johnny"], "required": true}, "field_10": {"name": "creative_response_pitch", "type": "paragraph", "label": "Outline your proposed creative narrative response incorporating a key unit theme.", "required": true}}}));
+
+window.addEventListener('DOMContentLoaded', () => initLesson({
+  "course": "English 8: Beginnings in Research, Literature, and Composition",
+  "unit": "Unit 8: Week 1-8 Recap & Creative Responses",
+  "day": "Day 32",
+  "topic": "Unit 1 Recap: Literary Legacy",
+  "primary_focus": "Reviewing character types and conflict in The Outsiders.",
+  "core_objectives": "Synthesizing whole-unit learning objectives.",
+  "weekly_standards": ["8.2.3.3"],
+  "bellringers": [
+    {
+      "id": 1,
+      "type": "Short Answer",
+      "prompt": "Identify one internal conflict faced by Ponyboy Curtis in The Outsiders.",
+      "expected_response": "Ponyboy struggles with matching his gang identity with his personal love for literature and nature."
+    },
+    {
+      "id": 2,
+      "type": "Multiple Choice",
+      "prompt": "Classify the main conflict between the Greasers and the Socs (Man vs. Man, Man vs. Self, Man vs. Society).",
+      "expected_response": "Man vs. Society / Man vs. Man social class conflict."
+    },
+    {
+      "id": 3,
+      "type": "Short Answer",
+      "prompt": "List two adjectives that describe Ponyboy's narrator voice in the opening chapter.",
+      "expected_response": "Observant, reflective, sensitive."
+    },
+    {
+      "id": 4,
+      "type": "Short Answer",
+      "prompt": "Write one sentence using indirect characterization to show a character feeling nervous.",
+      "expected_response": "He bit his lip, tapped his shoe rapidly against the tile, and wiped his sweaty palms on his jeans."
+    }
+  ],
+  "slides": [
+    {
+      "title": "Unit 1 Recap: Revisiting Literary Legacy in The Outsiders",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Revisiting key themes of identity, belonging, and socio-economic division.",
+        "Analyzing S.E. Hinton's lasting impact on young adult narrative literature.",
+        "Connecting character dynamics to real-world social pressures and choices."
+      ],
+      "callout": "Literary legacy is built on relatable human struggles that transcend generations."
+    },
+    {
+      "title": "Character Archetypes: Greasers vs. Socials (Socs)",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Examining structural differences between East Side Greasers and West Side Socs.",
+        "Deconstructing societal stereotypes versus individual character reality.",
+        "Understanding how group identity shapes individual member behaviors."
+      ],
+      "callout": "Stereotypes collapse when you examine individual character motivations."
+    },
+    {
+      "title": "Direct vs. Indirect Characterization",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Direct characterization explicitly states traits (e.g., 'Dally was tough').",
+        "Indirect characterization reveals personality through STEAL (Speech, Thoughts, Effect, Actions, Looks).",
+        "Applying characterization methods to craft vivid original narrative figures."
+      ],
+      "callout": "Show, don't just tell—let actions reveal character traits naturally."
+    },
+    {
+      "title": "Internal Conflict: Self-Identity vs. Group Expectations",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Ponyboy's personal struggle between intellectual interests and gang loyalty.",
+        "Johnny's internal battle against fear and childhood trauma.",
+        "Analyzing how internal conflicts drive character decisions under pressure."
+      ],
+      "callout": "Internal conflicts make fictional characters feel human and relatable."
+    },
+    {
+      "title": "External Conflict: Man vs. Man & Man vs. Society",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Physical confrontations and territorial rivalries driving plot progression.",
+        "Systemic socio-economic barriers shaping community expectations.",
+        "Evaluating how environmental pressures escalate interpersonal tensions."
+      ],
+      "callout": "External conflicts externalize underlying societal inequalities."
+    },
+    {
+      "title": "Pivotal Plot Turning Points & Climax Review",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Analyzing the park fountain incident as the narrative turning point.",
+        "Tracing cause-and-effect sequences from initial conflict to resolution.",
+        "Evaluating character choices made during crisis situations."
+      ],
+      "callout": "Turning points force characters to make decisions that alter their trajectory permanently."
+    },
+    {
+      "title": "Crafting Authentic Dialogue in Narrative Writing",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Using regional dialect and period-appropriate slang authentically.",
+        "Punctuating dialogue correctly to clarify narrative speaker changes.",
+        "Ensuring dialogue advances character relationships and plot momentum."
+      ],
+      "callout": "Good dialogue reveals character voice while moving the story forward."
+    },
+    {
+      "title": "Setting as a Character: Divided Tulsa",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Exploring how geographical setting mirrors social and economic divisions.",
+        "Utilizing sensory detail to establish vivid physical environments.",
+        "Analyzing how location shapes character choices and available opportunities."
+      ],
+      "callout": "Setting is not just a backdrop; it shapes character choices and constraints."
+    },
+    {
+      "title": "Theme Synthesis: 'Stay Gold' and Social Connection",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Deconstructing Robert Frost's poem 'Nothing Gold Can Stay' in context.",
+        "Analyzing Johnny's final message regarding innocence and hope.",
+        "Connecting thematic lessons to contemporary teenage experiences."
+      ],
+      "callout": "'Stay gold' represents preserving idealism and empathy despite hardship."
+    },
+    {
+      "title": "Sensory Details and Pacing in Creative Narratives",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Incorporating imagery appealing to sight, sound, touch, and smell.",
+        "Controlling sentence structure to speed up or slow down plot action.",
+        "Building narrative tension leading into key dramatic climaxes."
+      ],
+      "callout": "Vivid sensory details transport readers directly into the scene."
+    },
+    {
+      "title": "First-Person Voice & Narrative Perspective",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Evaluating Ponyboy's subjective perspective as an unreliable or biased narrator.",
+        "Exploring how first-person point of view limits and enhances reader insights.",
+        "Refactoring scenes from alternative character perspectives."
+      ],
+      "callout": "Perspective filters how story truth is communicated to the reader."
+    },
+    {
+      "title": "Synthesizing Learning: Preparing Creative Unit Responses",
+      "standard": "8.2.3.3",
+      "bullets": [
+        "Integrating conflict, characterization, and theme into original stories.",
+        "Applying Minnesota ELA Standard 8.2.3.3 writing criteria to draft narratives.",
+        "Peer reviewing creative drafts for dialogue accuracy and emotional depth."
+      ],
+      "callout": "Synthesize unit learning by crafting your own compelling narrative voice."
+    }
+  ],
+  "resources": {
+    "texts": ["The Outsiders by S.E. Hinton (Novel Excerpts)", "Robert Frost's 'Nothing Gold Can Stay'"],
+    "graphic_organizers": ["Character Archetype Matrix", "Conflict Analysis Mapping Sheet"],
+    "rubrics": ["MN ELA Standard 8.2.3.3 Narrative Writing Rubric"]
+  },
+  "form": {
+    "field_1": {
+      "name": "student_name",
+      "type": "text",
+      "label": "Student Full Name",
+      "required": true
+    },
+    "field_2": {
+      "name": "outsiders_theme",
+      "type": "short_answer",
+      "label": "Summarize the primary theme of The Outsiders in 2-3 sentences.",
+      "required": true
+    },
+    "field_3": {
+      "name": "internal_vs_external",
+      "type": "short_answer",
+      "label": "Distinguish between internal and external conflict with examples from the text.",
+      "required": true
+    },
+    "field_4": {
+      "name": "steal_acronym",
+      "type": "multiple_choice",
+      "label": "What does the 'E' stand for in the STEAL indirect characterization model?",
+      "options": ["Education", "Effect on others", "Emotion", "Environment"],
+      "required": true
+    },
+    "field_5": {
+      "name": "stay_gold_meaning",
+      "type": "paragraph",
+      "label": "Explain the symbolic meaning of Johnny's phrase 'Stay gold, Ponyboy.'",
+      "required": true
+    },
+    "field_6": {
+      "name": "narrative_perspective",
+      "type": "multiple_choice",
+      "label": "What point of view is used in S.E. Hinton's The Outsiders?",
+      "options": ["First-person central", "Second-person", "Third-person limited", "Third-person omniscient"],
+      "required": true
+    },
+    "field_7": {
+      "name": "dialogue_punctuation",
+      "type": "short_answer",
+      "label": "Write a correctly punctuated line of dialogue spoken by Ponyboy.",
+      "required": true
+    },
+    "field_8": {
+      "name": "greaser_soc_conflict",
+      "type": "short_answer",
+      "label": "What underlying socio-economic factors cause conflict between Greasers and Socs?",
+      "required": true
+    },
+    "field_9": {
+      "name": "character_type_identify",
+      "type": "multiple_choice",
+      "label": "Which character serves as the protective, hardened figure within the gang?",
+      "options": ["Ponyboy", "Dallas Winston", "Sodapop", "Johnny"],
+      "required": true
+    },
+    "field_10": {
+      "name": "creative_response_pitch",
+      "type": "paragraph",
+      "label": "Outline your proposed creative narrative response incorporating a key unit theme.",
+      "required": true
+    }
+  }
+}));
 </script>
 </body>
 </html>
